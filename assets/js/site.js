@@ -91,7 +91,7 @@
     'voyage-hero': ['ship-12', '50% 55%'], 'voyage-overview': ['ship-12', '50% 60%'], 'voyage-routing': ['ship-12', '50% 60%'], 'voyage-watch': ['ship-11', '68% 40%'], 'voyage-reroute': ['ship-07', '38% 50%'], 'voyage-faq': ['ship-07', '50% 50%'],
     'compliance-hero': ['ship-11', '60% 40%'], 'compliance-overview': ['ship-05', '70% 75%'], 'compliance-carbon': ['ship-07', '50% 50%'], 'compliance-cii': ['ship-11', '72% 40%'], 'compliance-biofouling': ['ship-06', '50% 35%'], 'compliance-faq': ['ship-10', '25% 100%'],
     'analytics-hero': ['ship-09', '50% 50%'], 'analytics-overview': ['ship-11', '72% 50%'], 'analytics-hull': ['ship-12', '50% 60%'], 'analytics-clean': ['ship-05', '70% 75%'], 'analytics-voyage': ['ship-07', '50% 50%'], 'analytics-faq': ['ship-10', '25% 100%'],
-    'segment-container': ['ship-07', '50% 60%'], 'segment-bulk': ['seg-bulk', '55% 50%'], 'segment-tanker': ['seg-tanker', '50% 55%'], 'segment-gas': ['seg-gas', '50% 50%'], 'serve-hero': ['ship-12', '45% 60%'], 'serve-users': ['ship-11', '72% 50%'],
+    'segment-container': ['ship-07', '50% 60%'], 'segment-bulk': ['seg-bulk', '55% 50%'], 'segment-tanker': ['seg-tanker', '50% 55%'], 'segment-gas': ['seg-gas', '50% 50%'], 'segment-general': ['seg-general', '40% 50%'], 'serve-hero': ['ship-12', '45% 60%'], 'serve-users': ['ship-11', '72% 50%'],
     'company-hero': ['ship-06', '50% 50%'], 'company-about': ['ship-07', '50% 50%'], 'serve-about': ['ship-12', '50% 60%'], 'company-story': ['ship-07', '50% 50%'], 'company-principles': ['ship-11', '72% 45%'], 'company-careers': ['ship-12', '50% 60%'],
     'cta-band': ['ship-10', '50% 100%']
   };
@@ -229,6 +229,66 @@
     brandTarget();
     storyFrame();
   }
+
+
+
+  /* floating scroll control: previous / next section, progress, next-section name */
+  (function () {
+    var box = $('.scroller'); if (!box) return;
+    var up = $('.sc-up', box), down = $('.sc-down', box), prog = $('.sc-prog', box), tip = $('.sc-tip', box);
+    var isHome = document.body.classList.contains('home');
+    function offset() { return (header ? header.offsetHeight : 76) + 8; }
+    function sections() { return $$('main .page > section, .site-footer').filter(function (s) { return s.offsetHeight > 40; }); }
+    function label(sec) {
+      if (!sec) return '';
+      if (sec.classList.contains('site-footer')) return 'Footer · contacts and links';
+      var h = sec.querySelector('h1, h2, .kicker'), a = sec.getAttribute('aria-label');
+      return (h ? h.textContent : a || '').replace(/\s+/g, ' ').trim();
+    }
+    function nextSec() { var o = offset(); return sections().filter(function (s) { return s.getBoundingClientRect().top > o + 4; })[0]; }
+    function prevSec() { var o = offset(), list = sections().filter(function (s) { return s.getBoundingClientRect().top < o - 30; }); return list[list.length - 1]; }
+    function go(sec) { if (!sec) return; window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - offset() + 8, behavior: reduced.matches ? 'auto' : 'smooth' }); }
+    function step(dir) { window.scrollBy({ top: dir * window.innerHeight * .9, behavior: reduced.matches ? 'auto' : 'smooth' }); }
+    down.addEventListener('click', function () { if (isHome && $('#story') && $('#story').getBoundingClientRect().bottom > window.innerHeight + 4) step(1); else go(nextSec()); });
+    up.addEventListener('click', function () { if (isHome && window.scrollY < ($('#story') ? $('#story').offsetHeight : 0)) step(-1); else { var p = prevSec(); if (p) go(p); else window.scrollTo({ top: 0, behavior: 'smooth' }); } });
+    var t = false;
+    function update() {
+      t = false;
+      var max = document.documentElement.scrollHeight - window.innerHeight, p = max > 0 ? window.scrollY / max : 0;
+      prog.style.strokeDashoffset = 125.7 * (1 - p);
+      up.hidden = window.scrollY < 8; down.hidden = window.scrollY > max - 8;
+      var n = isHome && $('#story') && $('#story').getBoundingClientRect().bottom > window.innerHeight + 4 ? null : nextSec();
+      var name = isHome && !n ? 'Keep scrolling the story' : label(n);
+      tip.innerHTML = name ? '<small>Next</small>' + name.replace(/</g, '&lt;') : '<small>End</small>You have reached the bottom';
+      down.setAttribute('aria-label', name ? 'Next: ' + name : 'Next section');
+    }
+    window.addEventListener('scroll', function () { if (!t) { t = true; requestAnimationFrame(update); } }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+
+
+
+  /* GE6 animation: click to open large and sharp */
+  $$('.ge6-video').forEach(function (fig) {
+    var src = $('iframe', fig).getAttribute('src');
+    fig.setAttribute('tabindex', '0'); fig.setAttribute('role', 'button'); fig.setAttribute('aria-label', 'Enlarge the GE6 diagram');
+    function open() {
+      var lb = document.createElement('div');
+      lb.className = 'lightbox'; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true'); lb.setAttribute('aria-label', 'GE6: from data to intelligence');
+      lb.innerHTML = '<button class="lb-close" type="button" aria-label="Close">&times;</button><div class="lb-frame"><iframe src="' + src + '" title="GE6: from data to intelligence"></iframe></div>';
+      document.body.appendChild(lb); document.body.classList.add('lock');
+      requestAnimationFrame(function () { lb.classList.add('show'); });
+      function close() { lb.classList.remove('show'); document.body.classList.remove('lock'); document.removeEventListener('keydown', key); setTimeout(function () { lb.remove(); fig.focus(); }, 350); }
+      function key(e) { if (e.key === 'Escape') close(); }
+      lb.addEventListener('click', function (e) { if (!e.target.closest('.lb-frame') || e.target.closest('.lb-close')) close(); });
+      $('.lb-close', lb).addEventListener('click', close);
+      document.addEventListener('keydown', key);
+      $('.lb-close', lb).focus();
+    }
+    fig.addEventListener('click', open);
+    fig.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  });
 
   /* book a demo: ?interest=voyage|compliance|analytics */
   var want = new URLSearchParams(location.search).get('interest');
